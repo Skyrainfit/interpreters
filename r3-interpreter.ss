@@ -3,7 +3,7 @@
 
 ;; ----- code -----
 (struct Scope (table parent))
-(struct Closure (f env))
+(struct Closure (fun env))
 
 (define new-env
   (lambda (env)

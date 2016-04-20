@@ -2,7 +2,7 @@
 
 
 ;; ----- code -----
-(struct Closure (f env))
+(struct Closure (fun env))
 
 (define env0 '())
 
