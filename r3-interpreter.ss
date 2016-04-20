@@ -42,6 +42,8 @@
            (error "undefined variable" x)]
           [else v]))]
       [(? number? x) x]
+      [(? boolean? x) x]
+      [(? string? x) x]
       [`(lambda (,x) ,e)
        (Closure exp env)]
       [`(let ([,x ,e1]) ,e2 ...)
@@ -59,6 +61,13 @@
          (if tval
              (interp e1 env)
              (interp e2 env)))]
+      [`(cond ,clauses ...)
+       (match (first clauses)
+         [`(,test ,result)
+          (let ([test-ok (or (eq? test 'else) (interp test env))])
+            (if test-ok
+                (interp result env)
+                (interp `(cond ,@(rest clauses)) env)))])]
       [`(,e1 ,e2)
        (let ([v1 (interp e1 env)]
              [v2 (interp e2 env)])
@@ -123,9 +132,10 @@
  '(begin
     (define fact
       (lambda (n)
-        (if (= n 0)
-            1
-            (* n (fact (- n 1))))))
+        (cond
+         [(= n 0) 1]
+         [else
+          (* n (fact (- n 1)))])))
     (fact 5)))
 ;; => 120
 
@@ -134,8 +144,27 @@
  '(begin
     (define fib
       (lambda (n)
-        (if (< n 2)
-            n
-            (+ (fib (- n 1)) (fib (- n 2))))))
+        (cond
+         [(< n 2) n]
+         [else
+          (+ (fib (- n 1)) (fib (- n 2)))])))
     (fib 9)))
 ;; => 34
+
+
+(r3
+ '(begin
+    (define even
+      (lambda (n)
+        (cond
+         [(= n 0) #t]
+         [(= n 1) #f]
+         [else  (odd (- n 1))])))
+    (define odd
+      (lambda (n)
+        (cond
+         [(= n 0) #f]
+         [(= n 1) #t]
+         [else  (even (- n 1))])))
+    (even 42)))
+;; => #t
