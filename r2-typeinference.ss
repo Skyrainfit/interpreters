@@ -1,21 +1,11 @@
 #lang racket
 
 
-;; ----- code -----
-(struct Closure (fun env))
+;; ----- main code -----
 
-(define env0 '())
-
-(define ext-env
-  (lambda (x v env)
-    (cons `(,x . ,v) env)))
-
-(define lookup
-  (lambda (x env)
-    (let ([p (assq x env)])
-      (cond
-       [(not p) #f]
-       [else (cdr p)]))))
+(define r2i
+  (lambda (exp)
+    (infer exp env0)))
 
 (define infer
   (lambda (exp env)
@@ -78,16 +68,32 @@
             [else
              'bool])]))])))
 
-(define r2i
-  (lambda (exp)
-    (infer exp env0)))
 
+;; ----- environment -----
+(struct Closure (fun env))
+
+(define env0 '())
+
+(define ext-env
+  (lambda (x v env)
+    (cons `(,x . ,v) env)))
+
+(define lookup
+  (lambda (x env)
+    (let ([p (assq x env)])
+      (cond
+       [(not p) #f]
+       [else (cdr p)]))))
+
+
+;; ----- utility -----
 (define failure
   (lambda (who . args)
     (display who) (display ": ")
     (for-each display args)
     (display "\n")
     (error "type check failed")))
+
 
 
 ;; ----- examples -----
@@ -122,9 +128,19 @@
 (r2i
 '(let ([x 2])
    (let ([f (lambda (y) (* x y))])
-     (let ([x 4])
+     (let ([x "hi"])
        (f 3)))))
 ;; => 'int
+
+
+(r2i
+'(let ([x "hi"])
+   (let ([f (lambda (y) (* x y))])
+     (let ([x 4])
+       (f 3)))))
+;; infer: first operand to operator * must be int
+;; but got: string
+;; type check failed
 
 
 (r2i
