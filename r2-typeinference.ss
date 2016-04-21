@@ -1,8 +1,11 @@
 #lang racket
 
 
-;; ----- main code -----
+;; ----- data structures -----
+(struct Closure (fun env))
 
+
+;; ----- main code -----
 (define r2i
   (lambda (exp)
     (infer exp env0)))
@@ -70,8 +73,6 @@
 
 
 ;; ----- environment -----
-(struct Closure (fun env))
-
 (define env0 '())
 
 (define ext-env
