@@ -1,21 +1,14 @@
 #lang racket
 
 
-;; ----- code -----
+;; ----- data structures -----
 (struct Closure (fun env))
 
-(define env0 '())
 
-(define ext-env
-  (lambda (x v env)
-    (cons `(,x . ,v) env)))
-
-(define lookup
-  (lambda (x env)
-    (let ([p (assq x env)])
-      (cond
-       [(not p) #f]
-       [else (cdr p)]))))
+;; ----- main code -----
+(define r2
+  (lambda (exp)
+    (interp exp env0)))
 
 (define interp
   (lambda (exp env)
@@ -47,10 +40,20 @@
            ['* (* v1 v2)]
            ['/ (/ v1 v2)]))])))
 
-(define r2
-  (lambda (exp)
-    (interp exp env0)))
 
+;; ----- environment -----
+(define env0 '())
+
+(define ext-env
+  (lambda (x v env)
+    (cons `(,x . ,v) env)))
+
+(define lookup
+  (lambda (x env)
+    (let ([p (assq x env)])
+      (cond
+       [(not p) #f]
+       [else (cdr p)]))))
 
 
 ;; ----- examples -----
