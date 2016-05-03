@@ -17,20 +17,23 @@
   (lambda (x v env)
     (hash-set! (Scope-table env) x v)))
 
-(define env0 (new-env #f))
-
 (define ext-env
   (lambda (x v env)
     (let ([env+ (new-env env)])
       (assign x v env+)
       env+)))
 
+(define assign*
+  (lambda (x* v* env)
+    (for ([x x*]
+          [v v*])
+      (assign x v env))))
+
 (define ext-env*
   (lambda (x* v* env)
-    (cond
-     [(null? x*) env]
-     [else (ext-env* (cdr x*) (cdr v*)
-                     (ext-env (car x*) (car v*) env))])))
+    (let ([env+ (new-env env)])
+      (assign* x* v* env+)
+      env+)))
 
 (define lookup
   (lambda (x env)
@@ -42,6 +45,12 @@
          [(not v?)
           (lookup x (Scope-parent env))]
          [else v?]))])))
+
+(define env0
+  (ext-env*
+   '(+ - * / = < >)
+   (list + - * / = < >)
+   #f))
 
 (define interp
   (lambda (exp env)
@@ -79,21 +88,12 @@
             (if test-ok
                 (interp result env)
                 (interp `(cond ,@(rest clauses)) env)))])]
-      [`(,(? op? op) ,e1 ,e2)
-       (let ([v1 (interp e1 env)]
-             [v2 (interp e2 env)])
-         (match op
-           ['+ (+ v1 v2)]
-           ['- (- v1 v2)]
-           ['* (* v1 v2)]
-           ['/ (/ v1 v2)]
-           ['= (= v1 v2)]
-           ['< (< v1 v2)]
-           ['> (> v1 v2)]))]
       [`(,f ,x* ...)
        (let ([fv (interp f env)]
              [xv* (map (lambda (x) (interp x env)) x*)])
          (match fv
+           [(? procedure? p)
+            (apply p xv*)]
            [(Closure `(lambda (,x* ...) ,e) env-save)
             (interp e (ext-env* x* xv* env-save))]))])))
 
