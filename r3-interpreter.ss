@@ -5,6 +5,10 @@
 (struct Scope (table parent))
 (struct Closure (fun env))
 
+(define op?
+  (lambda (x)
+    (memq x '(+ - * / = < >))))
+
 (define new-env
   (lambda (env)
     (Scope (make-hash) env)))
@@ -20,6 +24,13 @@
     (let ([env+ (new-env env)])
       (assign x v env+)
       env+)))
+
+(define ext-env*
+  (lambda (x* v* env)
+    (cond
+     [(null? x*) env]
+     [else (ext-env* (cdr x*) (cdr v*)
+                     (ext-env (car x*) (car v*) env))])))
 
 (define lookup
   (lambda (x env)
@@ -44,7 +55,7 @@
       [(? number? x) x]
       [(? boolean? x) x]
       [(? string? x) x]
-      [`(lambda (,x) ,e)
+      [`(lambda (,x* ...) ,e)
        (Closure exp env)]
       [`(let ([,x ,e1]) ,e2 ...)
        (let ([v1 (interp e1 env)])
@@ -68,13 +79,7 @@
             (if test-ok
                 (interp result env)
                 (interp `(cond ,@(rest clauses)) env)))])]
-      [`(,e1 ,e2)
-       (let ([v1 (interp e1 env)]
-             [v2 (interp e2 env)])
-         (match v1
-           [(Closure `(lambda (,x) ,e) env-save)
-            (interp e (ext-env x v2 env-save))]))]
-      [`(,op ,e1 ,e2)
+      [`(,(? op? op) ,e1 ,e2)
        (let ([v1 (interp e1 env)]
              [v2 (interp e2 env)])
          (match op
@@ -84,8 +89,13 @@
            ['/ (/ v1 v2)]
            ['= (= v1 v2)]
            ['< (< v1 v2)]
-           ['> (> v1 v2)]))])))
-
+           ['> (> v1 v2)]))]
+      [`(,f ,x* ...)
+       (let ([fv (interp f env)]
+             [xv* (map (lambda (x) (interp x env)) x*)])
+         (match fv
+           [(Closure `(lambda (,x* ...) ,e) env-save)
+            (interp e (ext-env* x* xv* env-save))]))])))
 
 (define r3
   (lambda (exp)
@@ -168,3 +178,22 @@
          [else  (even (- n 1))])))
     (even 42)))
 ;; => #t
+
+(r3
+ '(begin
+    (define f
+      (lambda (x y z)
+        (+ x (* y z))))
+    (f 1 2 3)))
+;; => 7
+
+(r3
+ '(begin
+    (define f
+      (lambda (x y)
+        (g y x)))
+    (define g
+      (lambda (x y)
+        (- x y)))
+    (f 1 2)))
+;; => 1
